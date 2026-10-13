@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ffdec="https://www.free-decompiler.com/flash" xmlns:xlink="http://www.w3.org/1999/xlink" ffdec:objectType="frame" height="84.2px" width="84.8px" viewBox="0 0 21.2 21.05">
+  <g transform="matrix(1.0, 0.0, 0.0, 1.0, 0.55, 0.5)">
+    <use ffdec:characterId="256" height="21.05" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" width="21.05" xlink:href="#shape0" />
+    <use ffdec:characterId="260" height="8.75" transform="matrix(1.0, 0.0, 0.0, 1.0, 4.9, 3.1)" width="13.35" xlink:href="#text0" />
+  </g>
+  <defs>
+    <g id="shape0">
+      <path d="M2.85 17.1 Q-0.05 14.2 -0.05 10.05 -0.05 5.9 2.85 2.95 5.8 0.0 9.95 0.0 14.15 0.0 17.05 2.95 20.0 5.9 20.0 10.05 20.0 14.2 17.05 17.1 14.15 20.05 9.95 20.05 5.8 20.05 2.85 17.1" fill="url(#gradient0)" fill-rule="evenodd" stroke="none" />
+      <path d="M2.85 17.1 Q-0.05 14.2 -0.05 10.05 -0.05 5.9 2.85 2.95 5.8 0.0 9.95 0.0 14.15 0.0 17.05 2.95 20.0 5.9 20.0 10.05 20.0 14.2 17.05 17.1 14.15 20.05 9.95 20.05 5.8 20.05 2.85 17.1 Z" fill="none" stroke="#006600" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0" />
+    </g>
+    <radialGradient cx="0" cy="0" gradientTransform="matrix(0.0242, 0.0021, -0.0021, 0.0242, 4.95, 5.1)" gradientUnits="userSpaceOnUse" id="gradient0" r="819.2" spreadMethod="pad">
+      <stop offset="0.011764705882352941" stop-color="#fef5f3" />
+      <stop offset="0.3843137254901961" stop-color="#86d138" />
+      <stop offset="1.0" stop-color="#275229" />
+    </radialGradient>
+    <g id="text0">
+      <g transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)">
+        <use fill="#000000" height="8.75" transform="matrix(0.21, 0.0, 0.0, 0.21, 1.0, 11.0)" width="13.35" xlink:href="#font_Arial__0" />
+      </g>
+    </g>
+    <g id="font_Arial__0">
+      <path d="M11.5 -7.7 L9.9 0.0 17.85 0.0 19.45 -7.7 11.5 -7.7 M19.55 -10.25 L19.55 -10.25 Q20.0 -12.5 20.95 -13.85 21.9 -15.2 26.0 -18.6 32.5 -24.05 33.95 -26.45 35.4 -28.9 35.4 -31.35 35.4 -35.6 32.0 -38.65 28.55 -41.65 22.45 -41.65 16.65 -41.65 12.6 -38.5 8.5 -35.35 7.05 -29.9 L14.4 -28.6 Q15.25 -32.35 17.2 -34.05 19.25 -35.8 22.35 -35.8 25.15 -35.8 26.55 -34.6 27.9 -33.45 27.9 -31.7 27.9 -30.5 27.1 -29.3 26.35 -28.0 21.8 -24.1 16.5 -19.45 14.7 -16.7 12.9 -14.0 12.35 -10.25 L19.55 -10.25" fill-rule="evenodd" stroke="none" />
+    </g>
+  </defs>
+</svg>

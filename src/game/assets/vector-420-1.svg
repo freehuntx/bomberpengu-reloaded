@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ffdec="https://www.free-decompiler.com/flash" xmlns:xlink="http://www.w3.org/1999/xlink" ffdec:objectType="frame" height="109.2px" width="442.8px" viewBox="0 0 110.7 27.3">
+  <g transform="matrix(1.0, 0.0, 0.0, 1.0, 61.3, 14.7)">
+    <use ffdec:characterId="418" height="27.3" transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)" width="110.7" xlink:href="#shape0" />
+    <use ffdec:characterId="419" height="11.0" transform="matrix(1.0, 0.0, 0.0, 1.0, -27.35, -10.2)" width="46.2" xlink:href="#text0" />
+  </g>
+  <defs>
+    <g id="shape0">
+      <path d="M11.25 12.1 L38.9 12.1 L41.8 11.7 Q44.1 11 45.95 9.15 Q48.9 6.25 48.9 2.1 L48.9 -4.2 Q48.9 -8.35 45.95 -11.3 Q43.05 -14.2 38.9 -14.2 L11.85 -14.2 L11.25 -14.2 L-50.8 -14.2 Q-54.95 -14.2 -57.9 -11.3 Q-60.8 -8.35 -60.8 -4.2 L-60.8 2.1 Q-60.8 6.25 -57.9 9.15 Q-56.05 11 -53.7 11.7 L-50.8 12.1 L11.25 12.1 Z" fill="url(#gradient1)" stroke="#993300" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.0" />
+    </g>
+    <linearGradient gradientTransform="matrix(0.0, 0.0178, -0.0782, 0.0, 3.3, -0.75)" gradientUnits="userSpaceOnUse" id="gradient0" spreadMethod="pad" x1="-819.2" x2="819.2">
+      <stop offset="0.011764705882352941" stop-color="#fef5f3" />
+      <stop offset="0.34901960784313724" stop-color="#c42f2f" />
+      <stop offset="0.5843137254901961" stop-color="#f3471d" />
+      <stop offset="1.0" stop-color="#f8e2cf" />
+    </linearGradient>
+    <linearGradient gradientTransform="matrix(0.0, 0.0178, -0.0782, 0.0, -15.2, -0.75)" gradientUnits="userSpaceOnUse" id="gradient1" spreadMethod="pad" x1="-819.2" x2="819.2">
+      <stop offset="0.011764705882352941" stop-color="#fef5f3" />
+      <stop offset="0.34901960784313724" stop-color="#c42f2f" />
+      <stop offset="0.5843137254901961" stop-color="#f3471d" />
+      <stop offset="1.0" stop-color="#f8e2cf" />
+    </linearGradient>
+    <g id="text0">
+      <g transform="matrix(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)">
+        <use fill="#ffffff" height="11.0" transform="matrix(0.2773, 0.0, 0.0, 0.2773, 0.0, 16.0)" width="46.2" xlink:href="#font_Beast_Machines_n0" />
+        <use fill="#ffffff" height="11.0" transform="matrix(0.2773, 0.0, 0.0, 0.2773, 13.15, 16.0)" width="46.2" xlink:href="#font_Beast_Machines_E0" />
+        <use fill="#ffffff" height="11.0" transform="matrix(0.2773, 0.0, 0.0, 0.2773, 25.55, 16.0)" width="46.2" xlink:href="#font_Beast_Machines_I0" />
+        <use fill="#ffffff" height="11.0" transform="matrix(0.2773, 0.0, 0.0, 0.2773, 28.8, 16.0)" width="46.2" xlink:href="#font_Beast_Machines_N0" />
+      </g>
+    </g>
+    <g id="font_Beast_Machines_n0">
+      <path d="M9.9 0.0 L9.9 -29.7 Q9.9 -31.7 11.9 -31.7 L35.7 -31.7 Q36.55 -31.7 37.1 -31.1 37.65 -30.55 37.65 -29.7 L37.65 0.0 45.6 0.0 45.6 -33.65 Q45.6 -35.35 44.75 -36.75 42.95 -39.65 39.65 -39.65 L1.95 -39.65 1.95 0.0 9.9 0.0" fill-rule="evenodd" stroke="none" />
+    </g>
+    <g id="font_Beast_Machines_E0">
+      <path d="M2.0 -15.85 L2.0 -5.9 Q2.0 -4.2 2.4 -2.95 3.35 0.0 7.95 0.0 L45.6 0.0 45.6 -7.95 11.9 -7.95 Q9.95 -7.95 9.95 -9.9 L9.95 -15.85 37.7 -15.85 37.7 -23.75 9.95 -23.75 9.95 -29.7 Q9.95 -31.7 11.9 -31.7 L45.6 -31.7 45.6 -39.65 7.95 -39.65 Q5.4 -39.65 4.1 -38.75 2.0 -37.4 2.0 -33.65 L2.0 -23.75 -1.95 -23.75 -1.95 -15.85 2.0 -15.85" fill-rule="evenodd" stroke="none" />
+    </g>
+    <g id="font_Beast_Machines_I0">
+      <path d="M9.9 0.0 L9.9 -39.65 1.95 -39.65 1.95 0.0 9.9 0.0" fill-rule="evenodd" stroke="none" />
+    </g>
+    <g id="font_Beast_Machines_N0">
+      <path d="M9.9 0.0 L9.9 -29.7 Q9.9 -31.7 11.9 -31.7 L35.7 -31.7 Q36.55 -31.7 37.1 -31.1 37.65 -30.55 37.65 -29.7 L37.65 0.0 45.6 0.0 45.6 -33.65 Q45.6 -35.35 44.75 -36.75 42.95 -39.65 39.65 -39.65 L1.95 -39.65 1.95 0.0 9.9 0.0" fill-rule="evenodd" stroke="none" />
+    </g>
+  </defs>
+</svg>

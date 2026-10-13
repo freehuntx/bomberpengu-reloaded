@@ -1,0 +1,22 @@
+{
+  "name": "bomberpengu-reloaded",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone native BomberPengu with peer-to-peer multiplayer.",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "node --experimental-transform-types --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@trystero-p2p/mqtt": "^0.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  }
+}
