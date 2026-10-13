@@ -7,6 +7,7 @@ import {
   type Socket,
   xmlSocket,
 } from "../net/index.ts";
+import { isBotName } from "./bot-types.ts";
 
 export interface XmlMessage {
   tag: string;
@@ -234,6 +235,37 @@ export class BomberpenguServer implements GameServer {
     if (!player) return; // everything else requires auth
 
     switch (tag) {
+      case "startBot": {
+        const name = xml.attrs.name ?? "";
+        if (!isBotName(name) || (player.matchWith !== null && player.matchWith !== name)) return;
+        // These opponents belong to this client, never to the shared room.
+        for (const challenged of player.challenged) {
+          const target = this.#byName(challenged);
+          if (target) this.#sendTo(target, buildXml("remRequest", { name: player.name }));
+        }
+        player.challenged = [];
+        player.challengeAll = false;
+        player.matchWith = name;
+        player.alive = true;
+        player.freestyleRequested = false;
+        this.#sendTo(player, buildXml("startBot", { name }));
+        for (const other of this.#players()) {
+          if (other !== player) this.#sendTo(other, buildXml("playerUpdate", {
+            name: player.name, skill: skill(player), state: this.#state(player, other),
+          }));
+        }
+        return this.#publish();
+      }
+      case "botResult": {
+        if (!player.matchWith || !isBotName(player.matchWith) || !player.alive) return;
+        const result = xml.attrs.result;
+        if (!["win", "loss", "draw"].includes(result ?? "")) return;
+        player.alive = false;
+        if (result === "win") player.wins++;
+        else if (result === "loss") player.loses++;
+        else player.draws++;
+        return this.#publish();
+      }
       case "toRoom": {
         if (!player.matchWith) return;
         this.#leaveMatch(player);
@@ -350,11 +382,11 @@ export class BomberpenguServer implements GameServer {
       }
 
       case "winGame":
-        if (player.matchWith) player.wins++;
+        if (player.matchWith && !isBotName(player.matchWith)) player.wins++;
         return this.#publish();
 
       case "drawGame":
-        if (player.matchWith) player.draws++;
+        if (player.matchWith && !isBotName(player.matchWith)) player.draws++;
         return this.#publish();
 
       case "msgPlayer":
@@ -365,7 +397,7 @@ export class BomberpenguServer implements GameServer {
         if (!player.matchWith) return;
         const enemy = this.#enemy(player);
         this.#die(player);
-        const winner = enemy?.name ?? "";
+        const winner = enemy?.name ?? (isBotName(player.matchWith) ? player.matchWith : "");
         this.#sendTo(player, buildXml("surrender", { winner }));
         if (enemy) this.#sendTo(enemy, buildXml("surrender", { winner }));
         return this.#publish();
@@ -407,6 +439,7 @@ export class BomberpenguServer implements GameServer {
       return;
     }
     if (name === "") return this.#kick(client, "Missing name!");
+    if (isBotName(name)) return this.#kick(client, "This name is reserved for a bot.");
     const holder = this.#byName(name);
     if (holder && holder.playerId !== client.playerId) {
       // Newest-wins: evict the current holder and let the newcomer join.

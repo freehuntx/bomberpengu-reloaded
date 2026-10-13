@@ -67,6 +67,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; }
 .bp-overlay-buttons { display: flex; gap: 32px; justify-content: center; }
 .bp-button { min-width: 110px; border: 1px solid #a83913; border-radius: 12px; background: linear-gradient(#fff, #ff3300 45%, #b93213 52%, #ffa058); color: #fff !important; font: bold 15px Arial, sans-serif !important; padding: 6px 12px; }
 .bp-chat { position: absolute; top: 480px; width: 640px; height: 160px; border-radius: 12px; background: #526371 url('./assets/bitmap-7.png') center/100% 100%; box-shadow: inset 0 0 0 3px #ddd, inset 0 0 0 5px #8b9395; }
+.bp-stage[data-loading="true"] .bp-chat::after { content: ""; position: absolute; inset: 0; z-index: 5; border-radius: inherit; background: #0008; }
 .bp-stage[data-screen="game"] .bp-chat, .bp-stage[data-screen="result"] .bp-chat { background-image: url('./assets/bitmap-1.png'); background-size: 640px 640px; background-position: bottom; }
 .bp-chat-lines { position: absolute; left: 26px; top: 13px; width: 588px; height: 102px; border: 1px inset #b5bdbd; background: #fff; padding: 5px; font: italic bold 12px/16px Arial, sans-serif; overflow-y: auto; overflow-wrap: anywhere; user-select: text; }
 .bp-chat-form { position: absolute; left: 26px; top: 120px; right: 26px; height: 27px; display: flex; align-items: center; gap: 11px; }

@@ -17,6 +17,21 @@ A random player name is generated on first visit and saved in localStorage under
 `playerName` for future visits. The `name` query parameter overrides the saved name
 and becomes the new saved name.
 Players using the same room can challenge each other in the lobby.
+Every player also has four private opponents at the top of the player list:
+`Bot [Freestyle]`, `Bot [Easy]`, `Bot [Medium]`, and `Bot [Hard]`.
+Clicking a bot starts a match automatically; rematches are accepted automatically too.
+Bots run in your browser, so other players can play their own bots simultaneously.
+
+Freestyle parks the bot inside the wall one tile left of the top-left spawn and
+explodes all destructible stones immediately, revealing every power-up for practice.
+Easy reacts slowly and plays casually, Medium seeks upgrades and useful bombing
+positions, and Hard reacts quickly and uses blast and chain-reaction forecasts to
+plan escapes and pressure its opponent. All bots use the normal movement, bomb,
+and power-up rules.
+Active bots walk back to open ground if displaced into walls. They prioritize
+collecting exposed items and choose item-preserving bomb placements, including
+checking chain reactions; destroying an item is reserved for when no safe,
+productive alternative is reachable.
 
 Direct links are supported:
 

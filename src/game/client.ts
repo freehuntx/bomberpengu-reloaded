@@ -1,5 +1,7 @@
 import { buildXml, parseXml } from "./game.ts";
 import { BomberpenguEngine, type Result } from "./engine.ts";
+import { BOT_NAMES, isBotName, botLevel } from "./bot-types.ts";
+import { BotController } from "./bots.ts";
 import { assetUrl, BomberpenguAudio, BomberpenguRenderer, spriteElement } from "./render.ts";
 import { browserLanguage, translations, translateError, translateServerMessage, type Language } from "./i18n.ts";
 import type { LocalConnection } from "../net/index.ts";
@@ -20,6 +22,8 @@ export class BomberpenguClient {
   private selected: string | null = null;
   private challengeAll = false;
   private opponent = "";
+  private bot: BotController | null = null;
+  private botTime = 0;
   private screen = "lobby";
   private rematchRequested = false;
   private rematchReceived = false;
@@ -41,7 +45,7 @@ export class BomberpenguClient {
   constructor(slot: HTMLElement, readonly name: string, readonly language: Language = browserLanguage()) {
     const t = this.text = translations[language];
     slot.innerHTML = `
-      <div class="bp-viewport"><main class="bp-stage" aria-label="BomberPengu" lang="${language}" data-language="${language}">
+      <div class="bp-viewport"><main class="bp-stage" aria-label="BomberPengu" lang="${language}" data-language="${language}" data-loading="true">
         <section class="bp-top">
           <canvas class="bp-arena" width="640" height="480" tabindex="0" aria-label="${t.arena}" hidden></canvas>
           <section class="bp-lobby">
@@ -65,7 +69,7 @@ export class BomberpenguClient {
           <button class="bp-sound" type="button" aria-label="${t.soundOff}" title="${t.soundOff}">♫</button>
           <section class="bp-overlay" hidden><div class="bp-panel"><h2 class="bp-overlay-title"></h2><p class="bp-overlay-message"></p><div class="bp-overlay-buttons"></div></div></section>
         </section>
-        <section class="bp-chat"><div class="bp-chat-lines" role="log" aria-live="polite" aria-label="${t.chat}"></div>
+        <section class="bp-chat" inert><div class="bp-chat-lines" role="log" aria-live="polite" aria-label="${t.chat}"></div>
           <form class="bp-chat-form"><input class="bp-chat-input" aria-label="${t.chatMessage}" maxlength="200" autocomplete="off"><button class="bp-send bp-image-button" type="submit" aria-label="${t.send}"></button></form>
         </section>
         <div class="bp-touch" aria-label="${t.touchControls}"><button data-key="ArrowLeft" aria-label="${t.left}">◀</button><button data-key="ArrowUp" aria-label="${t.up}">▲</button><button data-key="ArrowDown" aria-label="${t.down}">▼</button><button data-key="ArrowRight" aria-label="${t.right}">▶</button><button data-key="Space" aria-label="${t.bomb}">${t.bomb.toUpperCase()}</button></div>
@@ -104,7 +108,17 @@ export class BomberpenguClient {
     this.ticker = setInterval(() => {
       const now = performance.now(), dt = now - this.lastTime;
       this.lastTime = now;
-      if (this.screen === "game") this.engine.tick(dt);
+      if (this.screen === "game") {
+        if (this.bot) {
+          // The AI and collision rules share fixed 40-Hz steps.
+          this.botTime += Math.min(dt, 250);
+          while (this.botTime >= 25 && this.screen === "game") {
+            this.bot.tick(25);
+            this.engine.tick(25);
+            this.botTime -= 25;
+          }
+        } else this.engine.tick(dt);
+      }
       if (this.starting && this.engine.phase === "playing") {
         this.starting = false;
         this.hideOverlay();
@@ -180,11 +194,15 @@ export class BomberpenguClient {
     const { tag, attrs: a } = xml;
     switch (tag) {
       case "userList": {
+        const bots = BOT_NAMES.map(name => this.players.get(name) ?? { name, skill: "0/0/0", state: "0" });
         this.players.clear();
+        for (const bot of bots) this.players.set(bot.name, bot);
         for (const text of raw.match(/<user\s[^>]*>/g) ?? []) {
           const user = parseXml(text)!.attrs;
           this.players.set(user.name!, { name: user.name!, skill: user.skill ?? "0/0/0", state: user.state ?? "0" });
         }
+        delete this.root.dataset.loading;
+        this.el(".bp-chat").inert = false;
         this.hideOverlay();
         this.refreshLobby();
         return;
@@ -221,6 +239,9 @@ export class BomberpenguClient {
         return;
       }
       case "startGame": this.startMatch(a.name!, 2); return;
+      case "startBot":
+        if (isBotName(a.name ?? "")) this.startMatch(a.name!, 2);
+        return;
       case "playAgain":
         this.rematchReceived = true;
         this.updateRematch();
@@ -247,7 +268,9 @@ export class BomberpenguClient {
     const list = this.el(".bp-player-list");
     list.replaceChildren();
     const players = [...this.players.values()].sort((a, b) =>
-      Number(a.name.startsWith("Gast")) - Number(b.name.startsWith("Gast")) || a.name.localeCompare(b.name));
+      Number(isBotName(b.name)) - Number(isBotName(a.name))
+      || (isBotName(a.name) && isBotName(b.name) ? BOT_NAMES.indexOf(a.name) - BOT_NAMES.indexOf(b.name) : 0)
+      || Number(a.name.startsWith("Gast")) - Number(b.name.startsWith("Gast")) || a.name.localeCompare(b.name));
     for (const player of players) {
       const button = document.createElement("button");
       button.type = "button";
@@ -260,7 +283,7 @@ export class BomberpenguClient {
       button.addEventListener("click", () => this.playerAction(player));
       list.append(button);
     }
-    this.el(".bp-player-count").textContent = String(players.length);
+    this.el(".bp-player-count").textContent = String(players.filter(player => !isBotName(player.name)).length);
     if (this.selected && this.players.has(this.selected)) this.select(this.selected);
     const challengeLabel = this.challengeAll ? this.text.challengedAll : this.text.challengeAll;
     this.el(".bp-challenge-all").replaceChildren(this.buttonSprite(277, challengeLabel, this.challengeAll ? 2 : 1));
@@ -281,6 +304,10 @@ export class BomberpenguClient {
 
   private playerAction(player: LobbyPlayer): void {
     this.select(player.name);
+    if (isBotName(player.name)) {
+      this.send("startBot", { name: player.name });
+      return;
+    }
     switch (player.state) {
       case "0": case "3":
         this.send("challenge", { name: player.name, hash: "xxxxxx" });
@@ -311,9 +338,16 @@ export class BomberpenguClient {
     this.screen = "game";
     this.starting = true;
     this.keys = [];
-    this.engine.start(nr);
+    this.botTime = 0;
+    if (isBotName(opponent)) {
+      this.engine.startBot(botLevel(opponent) === "freestyle");
+      this.bot = new BotController(this.engine, botLevel(opponent));
+    } else {
+      this.bot = null;
+      this.engine.start(nr);
+    }
     this.lastTime = performance.now();
-    if (nr === 1) this.send("startGame", { name: opponent, hash: "xxxxxx" });
+    if (nr === 1 && !this.bot) this.send("startGame", { name: opponent, hash: "xxxxxx" });
     if (wasLobby) this.el(".bp-chat-lines").replaceChildren();
     this.root.dataset.screen = "game";
     this.el(".bp-arena").hidden = false;
@@ -325,6 +359,16 @@ export class BomberpenguClient {
   }
 
   private showResult(result: Result): void {
+    if (this.bot) {
+      this.send("botResult", { result });
+      const opponent = this.players.get(this.opponent);
+      if (opponent) {
+        const stats = opponent.skill.split("/").map(Number);
+        const index = result === "win" ? 1 : result === "loss" ? 0 : 2;
+        stats[index] = (stats[index] ?? 0) + 1;
+        opponent.skill = stats.join("/");
+      }
+    }
     this.screen = "result";
     this.keys = [];
     this.hideOverlay();
@@ -365,6 +409,11 @@ export class BomberpenguClient {
 
   private toRoom(): void {
     this.send("toRoom");
+    if (this.bot) {
+      const opponent = this.players.get(this.opponent);
+      if (opponent) opponent.state = "0";
+      this.bot = null;
+    }
     this.screen = "lobby";
     this.opponent = "";
     this.root.dataset.screen = "lobby";
@@ -474,6 +523,7 @@ export class BomberpenguClient {
       this.challengeAll = !this.challengeAll;
       this.send(this.challengeAll ? "challengeAll" : "remChallengeAll");
       for (const player of this.players.values()) {
+        if (isBotName(player.name)) continue;
         if (this.challengeAll) {
           if (player.state === "0") player.state = "2";
           else if (player.state === "3") player.state = "23";
@@ -486,7 +536,8 @@ export class BomberpenguClient {
       this.refreshLobby();
     }, { signal });
     this.el(".bp-rematch").addEventListener("click", () => {
-      if (this.rematchReceived) this.startMatch(this.opponent, 1);
+      if (this.bot) this.send("startBot", { name: this.opponent });
+      else if (this.rematchReceived) this.startMatch(this.opponent, 1);
       else { this.send("playAgain"); this.rematchRequested = true; this.updateRematch(); }
     }, { signal });
     this.el(".bp-to-room").addEventListener("click", () => this.toRoom(), { signal });

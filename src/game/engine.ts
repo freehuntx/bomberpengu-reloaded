@@ -113,6 +113,9 @@ export class BomberpenguEngine {
   lastPing = -9000;
   private priority = false;
   private locked = false;
+  localOpponent = false;
+  recoveringBot = false;
+  private freestyle = false;
   private seedSource: () => number;
 
   constructor(
@@ -126,6 +129,7 @@ export class BomberpenguEngine {
   get remote(): Penguin { return this.players[2 - this.localNr]!; }
 
   start(nr: number): void {
+    this.localOpponent = this.freestyle = this.recoveringBot = false;
     this.localNr = nr;
     this.players = [actor(1), actor(2)];
     this.grid = [];
@@ -140,6 +144,12 @@ export class BomberpenguEngine {
     this.nextId = nr === 1 ? 5000 : 10000;
   }
 
+  startBot(freestyle = false): void {
+    this.start(2);
+    this.localOpponent = true;
+    this.freestyle = freestyle;
+  }
+
   seed(seed: number): void {
     this.grid = makeGrid(seed);
     this.bombs = [];
@@ -150,6 +160,18 @@ export class BomberpenguEngine {
       p.bombs = 0;
     }
     this.phase = "playing";
+    if (this.freestyle) {
+      // One tile left of player one's spawn, inside the permanent arena border.
+      this.remote.x = 80;
+      for (let row = 0; row < ROWS; row++) for (let col = 0; col < COLS; col++) {
+        const cell = this.cell(col, row);
+        if (cell.type < Stone.Box || cell.type > Stone.Kick) continue;
+        this.flames.push({ col, row, player: this.remote, center: true, horizontal: false, created: this.time });
+        if (cell.type === Stone.Box) this.put(col, row, free());
+        else cell.open = true;
+      }
+      this.sound("explode");
+    }
   }
 
   setCode(code: string, player = this.local): void {
@@ -175,7 +197,7 @@ export class BomberpenguEngine {
     return cell.type === Stone.Free || (cell.open && cell.type >= Stone.BombUp && cell.type <= Stone.Kick);
   }
   private action(tag: string, attrs: Record<string, string | number> = {}): void {
-    this.send(buildXml(tag, {
+    if (!this.localOpponent) this.send(buildXml(tag, {
       c: this.local.code, x: Math.round(this.local.x), y: Math.round(this.local.y), ...attrs,
     }));
     this.oldCode = this.local.code;
@@ -187,9 +209,9 @@ export class BomberpenguEngine {
     this.frames++;
     this.priority = false;
     if (this.phase === "init" && this.frames >= 20) {
-      if (this.localNr === 1) {
+      if (this.localNr === 1 || this.localOpponent) {
         const seed = this.seedSource();
-        this.send(buildXml("16", { s: seed }));
+        if (!this.localOpponent) this.send(buildXml("16", { s: seed }));
         this.seed(seed);
       } else this.phase = "waiting";
     }
@@ -197,7 +219,7 @@ export class BomberpenguEngine {
       this.updatePlayer(this.local, dt);
       this.updatePlayer(this.remote, dt);
       if (!this.priority && this.local.code !== this.oldCode) this.action("12");
-      else if (!this.priority && this.time - this.lastPing >= 10000) {
+      else if (!this.localOpponent && !this.priority && this.time - this.lastPing >= 10000) {
         this.lastPing = this.pingAt = this.time;
         this.send(buildXml("ping"));
       }
@@ -212,22 +234,23 @@ export class BomberpenguEngine {
       this.bombs = this.bombs.filter(b => !b.exploded);
       this.flames = this.flames.filter(f => this.time - f.created <= FLAME_TIME);
       if (this.phase === "over" && this.time - this.overAt > 3000) {
-        if (this.result === "win") this.send(buildXml("winGame"));
+        if (this.result === "win" && !this.localOpponent) this.send(buildXml("winGame"));
         this.finish(this.result ?? "loss");
       }
     }
   }
 
   private updatePlayer(p: Penguin, dt: number): void {
+    if (!p.alive) return;
     const col = playerCol(p.x), row = playerRow(p.y);
-    if (p === this.local) {
+    if (p === this.local || this.localOpponent) {
       const cell = this.cell(col, row);
       if (cell.open && cell.type >= Stone.BombUp && cell.type <= Stone.Kick) {
         if (cell.type === Stone.BombUp) p.capacity++;
         if (cell.type === Stone.SpeedUp) p.speed = Math.min(0.18, p.speed + 0.01);
         if (cell.type === Stone.FlameUp) p.range++;
         if (cell.type === Stone.Kick) p.kick = true;
-        this.action("18", { xp: col, yp: row, s: p.speed, b: p.range });
+        if (p === this.local) this.action("18", { xp: col, yp: row, s: p.speed, b: p.range });
         this.put(col, row, free());
         this.sound("pickup");
       }
@@ -241,9 +264,10 @@ export class BomberpenguEngine {
   private movePlayer(p: Penguin, dx: number, dy: number, dt: number): void {
     const col = playerCol(p.x + dx * 21), row = playerRow(p.y + dy * 21);
     const cell = this.cell(col, row);
-    if (this.enter(cell)) {
-      if (p === this.local && this.flames.some(f =>
-        f.col === playerCol(p.x + dx * 18) && f.row === playerRow(p.y + dy * 18))) this.die();
+    const escapingWall = this.localOpponent && p === this.remote && this.recoveringBot && !this.freestyle;
+    if (this.enter(cell) || (escapingWall && cell.type !== Stone.Bomb)) {
+      if ((p === this.local || this.localOpponent) && this.flames.some(f =>
+        f.col === playerCol(p.x + dx * 18) && f.row === playerRow(p.y + dy * 18))) this.die(p);
       let distance = Math.min(20, p.speed * dt);
       const cross = dx ? p.y : p.x;
       const mod = cross % TILE;
@@ -254,24 +278,29 @@ export class BomberpenguEngine {
       distance -= Math.abs(step);
       // The original downward branch recomputes dy after lane correction.
       if (dy > 0) distance = Math.min(20, p.speed * dt);
-      p.x = Math.max(120, Math.min(600, p.x + dx * distance));
-      p.y = Math.max(40, Math.min(440, p.y + dy * distance));
+      // Outside-wall recovery must walk back in, rather than snapping across
+      // the arena boundary. Normal movement still uses the original bounds.
+      p.x = Math.max(escapingWall ? Math.min(120, p.x) : 120,
+        Math.min(escapingWall ? Math.max(600, p.x) : 600, p.x + dx * distance));
+      p.y = Math.max(escapingWall ? Math.min(40, p.y) : 40,
+        Math.min(escapingWall ? Math.max(440, p.y) : 440, p.y + dy * distance));
     } else {
       if (dx) p.x = Math.floor((p.x + 20) / TILE) * TILE;
       else p.y = Math.floor((p.y + 20) / TILE) * TILE;
-      if (p === this.local && cell.type === Stone.Bomb && p.kick && this.cell(playerCol(p.x), playerRow(p.y)).type !== Stone.Bomb) {
+      if ((p === this.local || this.localOpponent) && cell.type === Stone.Bomb && p.kick && this.cell(playerCol(p.x), playerRow(p.y)).type !== Stone.Bomb) {
         const bomb = this.bombs.find(b => !b.exploded && b.col === col && b.row === row);
-        if (bomb) this.kick(bomb, dx * 0.1, dy * 0.1);
+        if (bomb) this.kick(bomb, dx * 0.1, dy * 0.1, p);
       }
     }
   }
 
-  drop(): void {
+  drop(p = this.local): void {
     if (this.phase !== "playing") return;
-    const p = this.local, col = playerCol(p.x), row = playerRow(p.y);
+    if (!p.alive || (p !== this.local && !this.localOpponent)) return;
+    const col = playerCol(p.x), row = playerRow(p.y);
     if (this.cell(col, row).type !== Stone.Free || p.bombs >= p.capacity) return;
     this.placeBomb(col, row, p);
-    this.action("17", { xp: col, yp: row });
+    if (p === this.local) this.action("17", { xp: col, yp: row });
   }
 
   placeBomb(col: number, row: number, player: Penguin): Bomb | null {
@@ -290,10 +319,10 @@ export class BomberpenguEngine {
     return bomb;
   }
 
-  private kick(bomb: Bomb, dx: number, dy: number): void {
-    if (bomb.kickedBy === this.local || (dx < 0 && bomb.col === 0) || (dx > 0 && bomb.col === 12)
+  private kick(bomb: Bomb, dx: number, dy: number, player = this.local): void {
+    if (bomb.kickedBy === player || (dx < 0 && bomb.col === 0) || (dx > 0 && bomb.col === 12)
       || (dy < 0 && bomb.row === 0) || (dy > 0 && bomb.row === 10)) return;
-    bomb.kickedBy = this.local;
+    bomb.kickedBy = player;
     bomb.remoteKicked = false;
     bomb.moving = true;
     bomb.dx = dx;
@@ -316,13 +345,14 @@ export class BomberpenguEngine {
     bomb.x = Math.max(20, Math.min(500, bomb.x + bomb.dx * dt));
     bomb.y = Math.max(20, Math.min(420, bomb.y + bomb.dy * dt));
     const ox = Math.sign(bomb.dx) * 20, oy = Math.sign(bomb.dy) * 20;
-    if (bomb.kickedBy !== this.local && this.local.alive
-      && Math.abs(this.local.x - (bomb.x + ox + 100)) < 17
-      && Math.abs(this.local.y - (bomb.y + oy + 20)) < 18) {
+    for (const player of this.localOpponent ? this.players : [this.local]) {
+      if (bomb.kickedBy === player || !player.alive
+        || Math.abs(player.x - (bomb.x + ox + 100)) >= 17
+        || Math.abs(player.y - (bomb.y + oy + 20)) >= 18) continue;
       bomb.x = bomb.col * TILE + 20;
       bomb.y = bomb.row * TILE + 20;
-      this.local.x = bomb.x + ox * 2 + 100;
-      this.local.y = bomb.y + oy * 2 + 20;
+      player.x = bomb.x + ox * 2 + 100;
+      player.y = bomb.y + oy * 2 + 20;
       bomb.moving = false;
       bomb.remoteKicked = false;
       this.action("11", { i: bomb.id!, xp: bomb.col, yp: bomb.row, t: bomb.expires - this.time });
@@ -372,9 +402,22 @@ export class BomberpenguEngine {
     this.flames = this.flames.filter(f => f.col !== col || f.row !== row);
     this.flames.push({ col, row, player, center, horizontal, created: this.time });
     if (playerCol(this.local.x) === col && playerRow(this.local.y) === row) this.die();
+    if (this.localOpponent && playerCol(this.remote.x) === col && playerRow(this.remote.y) === row) this.die(this.remote);
   }
 
-  die(): void {
+  die(player = this.local): void {
+    if (this.localOpponent) {
+      if (!player.alive || this.phase === "finished") return;
+      // Resolve simultaneous blasts in the death tick. Later explosions during
+      // the frozen result animation must not turn a completed victory into a draw.
+      if (this.phase === "over" && this.time > this.overAt) return;
+      this.markDead(player);
+      if (this.phase !== "over") this.overAt = this.time;
+      this.phase = "over";
+      this.result = !this.local.alive && !this.remote.alive ? "draw" : this.local.alive ? "win" : "loss";
+      this.local.code = this.remote.code = "0000";
+      return;
+    }
     if (this.locked || !this.local.alive) return;
     this.action("die");
     this.markDead(this.local);
